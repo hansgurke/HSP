@@ -32,9 +32,11 @@
 								<inputType id="nvcc.compiler.input.c.666104131" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.3476744" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option id="nvcc.linker.option.paths.976975675" superClass="nvcc.linker.option.paths" valueType="libPaths">
+								<option id="nvcc.linker.option.paths.976975675" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/include/GL"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
+								<option id="nvcc.linker.option.libs.1483820872" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs"/>
 								<inputType id="nvcc.linker.input.1784327390" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -62,6 +64,9 @@
 		</cconfiguration>
 		<cconfiguration id="com.nvidia.cuda.ide.seven_five.configuration.release.2013785914">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.nvidia.cuda.ide.seven_five.configuration.release.2013785914" moduleId="org.eclipse.cdt.core.settings" name="Release">
+				<macros>
+					<stringMacro name="X11lib" type="VALUE_TEXT" value="-lX11"/>
+				</macros>
 				<externalSettings/>
 				<extensions>
 					<extension id="nvcc.errorParser" point="org.eclipse.cdt.core.ErrorParser"/>
@@ -91,6 +96,9 @@
 								<inputType id="nvcc.compiler.input.c.1823689483" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.2002872915" name="NVCC Linker" superClass="nvcc.linker.base">
+								<option id="nvcc.linker.option.paths.241427296" superClass="nvcc.linker.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="/usr/include"/>
+								</option>
 								<inputType id="nvcc.linker.input.1459305600" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -119,18 +127,35 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="juliaset.com.nvidia.cuda.ide.seven_five.exe.467098596" name="Executable" projectType="com.nvidia.cuda.ide.seven_five.exe"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/HSP"/>
+		</configuration>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/HSP"/>
+		</configuration>
+	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.release.2013785914;com.nvidia.cuda.ide.seven_five.configuration.release.2013785914.;nvcc.compiler.base.1796270361;nvcc.compiler.input.c.1823689483">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589;com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589.;nvcc.compiler.base.1314457965;nvcc.compiler.input.cu.712774674">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589;com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589.;nvcc.compiler.base.1314457965;nvcc.compiler.input.cpp.779988490">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589;com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589.;nvcc.compiler.base.1314457965;nvcc.compiler.input.c.666104131">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589;com.nvidia.cuda.ide.seven_five.configuration.debug.1162507589.;nvcc.compiler.base.1314457965;nvcc.compiler.input.cu.712774674">
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.release.2013785914;com.nvidia.cuda.ide.seven_five.configuration.release.2013785914.;nvcc.compiler.base.1796270361;nvcc.compiler.input.cu.1045625042">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.release.2013785914;com.nvidia.cuda.ide.seven_five.configuration.release.2013785914.;nvcc.compiler.base.1796270361;nvcc.compiler.input.cpp.811083583">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
-	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

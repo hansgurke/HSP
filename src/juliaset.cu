@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 static void CheckCudaErrorAux (const char *, unsigned, const char *, cudaError_t);
 #define CUDA_CHECK_RETURN(value) CheckCudaErrorAux(__FILE__,__LINE__, #value, value)
@@ -51,6 +53,30 @@ float *gpuReciprocal(float *data, unsigned size)
 }
 */
 
+#define WIDTH	800
+#define HEIGHT	800
+#define NCOL_R	16
+#define NCOL_G	16
+#define NCOL_B	16
+#define NMAX	10000
+
+/*START GLOBAL VARIABLES*/
+/**/
+/**/
+Display *dp;
+Window   wp;
+GC      *gcp;
+XEvent  event;
+XSetWindowAttributes ap;
+/**/
+/**/
+/*END GLOBAL VARIABLES*/
+
+
+
+/*START KERNEL DEFINITION*/
+/**/
+/**/
 __device__ void cadd(float a_real, float a_imag, float b_real, float b_imag, float* c_real, float* c_imag)
 {
     //Complex c;
@@ -219,7 +245,7 @@ __global__ void calc_CMandelbrot(int* A, long number_of_iterations, int N, int M
 }
 
 
-__global__ void calc_CMandelbrot(int* A, long number_of_iterations, int pixel_x, int pixel_y, float start_x, float start_y, float end_x, float end_y, int device)
+__global__ void calc_CMandelbrot(int* A, int number_of_iterations, int pixel_x, int pixel_y, float start_x, float start_y, float end_x, float end_y, int device)
 {
 	// Block index
 	//int bx = blockIdx.x;
@@ -260,6 +286,123 @@ __global__ void calc_CMandelbrot(int* A, long number_of_iterations, int pixel_x,
 
 	A[x] = step;
 }
+
+/*kernel for calculating a chunk of MandelbrotSet*/
+__global__ void calc_CMandelbrot(int* A, int number_of_iterations, int pixel_x, int pixel_y, float start_x, float chunkstart_y, float gran_x, float gran_y)
+{
+
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	if(index <= pixel_x*pixel_y)
+	{
+		int x = index/pixel_y;
+		int y = index - x*pixel_y;
+
+		int step=0;
+		float temp_real=0;
+		float temp_imag=0;
+		float c_imag=chunkstart_y-(y*gran_y);
+		float c_real=start_x-(x*gran_x);
+		float z_real=0;//x_start-(n*granularity);
+		float z_imag=0;//y_start-(m*granularity);
+
+
+		while(step < number_of_iterations)
+		{
+			cmul(z_real, z_imag, z_real, z_imag, &temp_real, &temp_imag);    //function to calculate MandelbrotSet  z(1) = z(0)² + c
+		    cadd(temp_real, temp_imag, c_real, c_imag, &z_real, &z_imag);
+		    cbetr(z_real, z_imag, &temp_real);
+		    if(temp_real>2)
+		    {
+		        break;       //is NOT considered as in MandelbrotSet
+		    }
+		    //z.real=temp.real;
+		    //z.imag=temp.imag;
+		    step++;
+		 }
+		A[x] = step;
+	}
+
+}
+/**/
+/**/
+/*END KERNEL DEFINITION*/
+
+
+
+
+class Chunks
+{
+public:
+	int* h_Arr;
+	int* d_Arr;
+	int x_px;
+	int y_px;
+	int start_y_px;
+	int ID;
+	cudaError_t error;
+	int device;
+	int BLOCK_SIZE;
+	int blockCount;
+	int iterations;
+	float start_x;
+	float start_y;
+	float gran_x;
+	float gran_y;
+	size_t size;
+
+	Chunks(int x, int y, int y_start_px, int id, int device, int block_size, int number_of_iterations, float x_start, float y_start, float granularity_x, float granularity_y);
+	void invoke();
+	void fetch_results();
+};
+
+Chunks::Chunks(int x, int y, int y_start_px, int id, int device, int block_size, int number_of_iterations, float x_start, float y_start, float granularity_x, float granularity_y)
+{
+	size = x * y * 1 * sizeof(int);
+	h_Arr = (int *)malloc(size);
+	ID = id;
+	x_px = x;
+	y_px = y;
+	start_y_px = y_start_px;
+	this->device = device;
+	BLOCK_SIZE = block_size;
+	blockCount = ceil((x_px*y_px)/(double)BLOCK_SIZE);
+	iterations = number_of_iterations;
+	start_x = x_start;
+	start_y = y_start;
+	gran_x = granularity_x;
+	gran_y = granularity_y;
+}
+
+/*allocate device memory and invoke kernel*/
+void Chunks::invoke()
+{
+	/*set correct Device*/
+	error = cudaSetDevice(device);
+	if (error != cudaSuccess)
+	{
+	    printf("cudaSetDeviceCount returned error %s (code %d), line(%d)\n", cudaGetErrorString(error), error, __LINE__);
+	    exit(EXIT_FAILURE);
+	}
+
+	/*allocate device Memory*/
+	error = cudaMalloc((void **) &d_Arr, size);
+	if (error != cudaSuccess)
+	{
+	    printf("cudaMalloc d_A returned error %s (code %d), line(%d)\n", cudaGetErrorString(error), error, __LINE__);
+	    exit(EXIT_FAILURE);
+	}
+
+	calc_CMandelbrot<<<blockCount, BLOCK_SIZE>>>(d_Arr, iterations, x_px, y_px, start_x, start_y, gran_x, gran_y);
+}
+
+/*fetch result memory from device*/
+void Chunks::fetch_results()
+{
+	error = cudaSetDevice(device);
+	cudaMemcpy(h_Arr, d_Arr, size, cudaMemcpyDeviceToHost);
+	cudaFree(d_Arr);
+}
+
 
 
 
@@ -342,10 +485,86 @@ void startCalc(float start_x, float start_y, float end_x, float end_y, int pixel
 
 }
 
+/*START DRAWING ROUTINES*/
+/**/
+/**/
+void setcolorcell()
+{
+   XColor col;
+   int i,j,k,n,di,dj,dk;
+
+   di = 0xffff/NCOL_R;
+   dj = 0xffff/NCOL_G;
+   dk = 0xffff/NCOL_B;
+
+   col.red  =0;
+   col.blue =0;
+   col.green=0;
+   gcp[0] = XCreateGC(dp,wp,0,NULL);
+   XAllocColor(dp,DefaultColormap(dp,0),&col);
+   XSetForeground(dp,gcp[0],col.pixel);
+
+   n=0;
+   for(i=0;i<NCOL_R;i++){
+     for(j=0;j<NCOL_G;j++){
+       for(k=0;k<NCOL_B;k++){
+
+         col.red   = 0xffff - di*i;
+         col.blue  = 0xffff - dj*j;
+         col.green = 0xffff - dk*k;
+
+         gcp[n] = XCreateGC(dp,wp,0,NULL);
+         XAllocColor(dp,DefaultColormap(dp,0),&col);
+         XSetForeground(dp,gcp[n],col.pixel);
+
+         n++;
+       }
+     }
+   }
+}
+
+void draw_graph()
+{
+   int i,j,k,nc;
+   //double dx,dy;
+
+   nc = NCOL_R*NCOL_G*NCOL_B-1;
+   //dx = (xmax-xmin)/WIDTH;
+   //dy = (ymax-ymin)/HEIGHT;
+   for(i=0;i<WIDTH;i++){
+     for(j=0;j<HEIGHT;j++){
+       //k = (double)recurs(dx*i + xmin,dy*j + ymin)/NMAX*nc;
+       XDrawPoint(dp,wp,gcp[1],i,j);
+     }
+   }
+}
+/**/
+/**/
+/*END DRAWING ROUTINES*/
 
 
 int main(int argc, char* argv[])
 {
+	if ((gcp=(GC *)malloc(sizeof(GC *)*NCOL_R*NCOL_G*NCOL_B))==NULL){exit(-1);}
+
+	dp = XOpenDisplay(NULL);
+	wp = XCreateSimpleWindow(dp,RootWindow(dp,0),0,0,WIDTH,HEIGHT,1,WhitePixel(dp,0),BlackPixel(dp,0));
+	ap.backing_store=Always;
+	XChangeWindowAttributes(dp,wp,CWBackingStore,&ap);
+	XSelectInput(dp,wp,ButtonPressMask|ButtonReleaseMask);
+	setcolorcell();
+	XMapWindow(dp,wp);
+	XFlush(dp);
+	draw_graph();
+	while(True)
+	{
+		XNextEvent(dp, &event);
+	    if(event.type == ButtonPress) break;
+	}
+
+
+
+
 	/*
 	clock_t prgstart, prgende;
 
@@ -439,7 +658,7 @@ int main(int argc, char* argv[])
 	//delete[] recCpu;
 	//delete[] recGpu;
 
-	startCalc(-2,2,-2,2,64,64,1024);
+	//startCalc(-2,2,-2,2,64,64,1024);
 	return 0;
 }
 
